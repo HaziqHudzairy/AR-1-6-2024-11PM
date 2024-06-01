@@ -1,59 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Experience</title>
+    <!-- Include A-Frame and AR.js libraries -->
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-    <script src="https://cdn.8thwall.com/web/aframe/8frame-1.0.0.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <!-- Include Three.js GLTFLoader -->
+    <script src="https://cdn.rawgit.com/mrdoob/three.js/r130/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body style="margin: 0; overflow: hidden;">
-<a-scene
-    vr-mode-ui="enabled: false;"
-    loading-screen="enabled: false;"
-    renderer="logarithmicDepthBuffer: true;"
-    id="scene"
-    embedded
->
-<a-assets>
-    <a-asset-item
-        id="animated-asset"
-        src="assets/asset.gltf"
-    ></a-asset-item>
-</a-assets>
+    <a-scene
+        vr-mode-ui="enabled: false;"
+        loading-screen="enabled: false;"
+        renderer="logarithmicDepthBuffer: true;"
+        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+        embedded
+    >
+        <!-- Assets -->
+        <a-assets>
+            <!-- Load your 3D model -->
+            <a-asset-item id="animated-asset" src="assets/asset.gltf"></a-asset-item>
+        </a-assets>
 
-<a-entity
-    id="bowser-model"
-    scale="0.029413944942555025 0.029413944942555025 0.029413944942555025"
-    animation-mixer="loop: repeat"
-    gltf-model="#animated-asset"
-    class="clickable"
-></a-entity>
+        <!-- Marker with 3D Model -->
+        <a-marker
+            type="pattern"
+            preset="custom"
+            url="assets/marker.patt"
+            raycaster="objects: .clickable"
+            emitevents="true"
+            cursor="fuse: false; rayOrigin: mouse;"
+            marker-status="tracking: true;"
+        >
+            <!-- Place your 3D model inside the marker -->
+            <a-entity
+                id="bowser-model"
+                scale="0.029413944942555025 0.029413944942555025 0.029413944942555025"
+                animation-mixer="loop: repeat"
+                gltf-model="#animated-asset"
+                class="clickable"
+            ></a-entity>
+        </a-marker>
 
-<script>
-    const xr = document.querySelector('a-scene').systems['xr'];
+        <!-- Camera -->
+        <a-entity camera></a-entity>
 
-    xr.addEventListener('reality.started', () => {
-        console.log('Reality started');
-        anchorObjectToPlane();
-    });
+        <!-- Your Script -->
+        <script>
+            const marker = document.querySelector("#animated-marker");
 
-    function anchorObjectToPlane() {
-        const plane = document.createElement('a-entity');
-        plane.setAttribute('geometry', {
-            primitive: 'plane',
-            width: 1,
-            height: 1
-        });
-        plane.setAttribute('material', 'color: #00FF00; transparent: true; opacity: 0.5');
-        plane.setAttribute('position', '0 0 -1'); // Adjust the position as needed
-        plane.setAttribute('rotation', '-90 0 0'); // Adjust the rotation as needed
-        document.querySelector('a-scene').appendChild(plane);
+            // Listen for marker lost event
+            marker.addEventListener("markerLost", function () {
+                switchToMarkerlessTracking();
+            });
 
-        const bowserModel = document.querySelector('#bowser-model');
-        bowserModel.setAttribute('position', '0 0 0'); // Place the object on the plane
-        plane.appendChild(bowserModel);
-    }
-</script>
+            // Switch to markerless tracking function
+            function switchToMarkerlessTracking() {
+                if (isMarkerlessTrackingSupported()) {
+                    initiateMarkerlessTracking();
+                } else {
+                    console.warn("Markerless tracking is not supported on this device.");
+                }
+            }
 
-</a-scene>
+            // Check if markerless tracking is supported
+            function isMarkerlessTrackingSupported() {
+                // Check if WebXR is supported by the browser
+                return 'xr' in navigator;
+            }
+
+            // Initiate markerless tracking
+            function initiateMarkerlessTracking() {
+                // Request WebXR session
+                navigator.xr.requestSession('immersive-ar').then(function(session) {
+                    // Connect WebXR session to the A-Frame scene or use Three.js to render objects
+                    // Here, you can set up event listeners to handle tracking and render objects
+                    session.addEventListener('end', handleXRSessionEnd);
+                    session.addEventListener('select', handleXRSelect);
+                    session.requestReferenceSpace('local').then(function(referenceSpace) {
+                        // Use referenceSpace to anchor objects in the AR environment
+                    });
+                }).catch(function(error) {
+                    console.error('Failed to start WebXR session:', error);
+                });
+            }
+
+            // Handle end of WebXR session
+            function handleXRSessionEnd(event) {
+                // Handle the end of the WebXR session, e.g., reset the scene
+                console.log('WebXR session ended.');
+            }
+
+            // Handle user interaction with AR environment
+            function handleXRSelect(event) {
+                // Handle user interaction with the AR environment, e.g., placing objects
+                console.log('User selected something in the AR environment.');
+            }
+        </script>
+    </a-scene>
 </body>
 </html>
